@@ -6,15 +6,10 @@ from datetime import datetime
 import json
 
 import streamlit as st
-from dotenv import load_dotenv
-
 from scrapper.crawler import crawl_site
 from scrapper.extractor import extract_markdown_items
 from scrapper.indexer import build_faiss_index
-from scrapper.qa_agent import answer_question, debug_index_contents
-
-
-load_dotenv()
+from scrapper.qa_agent import answer_question
 
 st.set_page_config(page_title="Knowledge Builder", page_icon="🍎", layout="centered")
 
@@ -78,10 +73,10 @@ with st.sidebar:
     
     # Check if API key was recently removed
     if st.session_state.get("api_key_removed", False):
-        st.warning("⚠️ API Key removed. Please restart the app to complete the removal.")
+        st.warning("⚠️ API Key removed.")
         st.session_state["api_key_removed"] = False  # Reset the flag
     
-    current_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    current_key = st.session_state.get("anthropic_api_key", "")
     if current_key:
         st.success("✅ API Key Found")
         col1, col2 = st.columns([1, 1])
@@ -101,18 +96,13 @@ with st.sidebar:
         col1, col2, col3 = st.columns([1, 1, 1])
         with col1:
             if st.button("Yes, Remove", type="primary", key="confirm_remove_yes"):
-                # Remove from .env file
-                env_path = Path(".env")
-                if env_path.exists():
-                    env_content = env_path.read_text()
-                    lines = env_content.split('\n')
-                    lines = [line for line in lines if not line.startswith("ANTHROPIC_API_KEY")]
-                    env_path.write_text('\n'.join(lines))
-                # Clear from session state and reload environment
+                # Remove from session state only
+                if "anthropic_api_key" in st.session_state:
+                    del st.session_state["anthropic_api_key"]
                 st.session_state["api_key_removed"] = True
-                st.success("API Key removed successfully! Please restart the app to complete the removal.")
                 st.session_state["confirm_remove_key"] = False
                 st.session_state["show_key_input"] = False
+                st.success("API Key removed successfully!")
                 st.rerun()
         with col2:
             if st.button("Cancel", key="cancel_remove_key"):
@@ -125,19 +115,10 @@ with st.sidebar:
         with col1:
             if st.button("Save Key", key="save_api_key"):
                 if new_key:
-                    # Save to .env file
-                    env_path = Path(".env")
-                    env_content = env_path.read_text() if env_path.exists() else ""
-                    if "ANTHROPIC_API_KEY" in env_content:
-                        # Update existing key
-                        lines = env_content.split('\n')
-                        lines = [line for line in lines if not line.startswith("ANTHROPIC_API_KEY")]
-                        lines.append(f"ANTHROPIC_API_KEY={new_key}")
-                        env_path.write_text('\n'.join(lines))
-                    else:
-                        # Add new key
-                        env_path.write_text(f"{env_content}\nANTHROPIC_API_KEY={new_key}\n")
-                    st.success("API Key saved! Please restart the app.")
+                    # Save to session state only
+                    st.session_state["anthropic_api_key"] = new_key
+                    st.session_state["show_key_input"] = False
+                    st.success("API Key saved!")
                     st.rerun()
                 else:
                     st.error("Please enter a valid API key")
@@ -145,6 +126,17 @@ with st.sidebar:
             if st.button("Cancel", key="cancel_save_key"):
                 st.session_state["show_key_input"] = False
                 st.rerun()
+    
+    st.divider()
+    
+    # App Management
+    st.subheader("🔄 App Management")
+    if st.button("Reset App", type="secondary", use_container_width=True, key="reset_app_button"):
+        # Clear all session state
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.success("App reset successfully!")
+        st.rerun()
     
     st.divider()
     
@@ -226,8 +218,8 @@ if show_outputs:
 if debug_index and st.session_state.get("active_index"):
     with st.spinner("Checking index contents..."):
         try:
-            doc_count = debug_index_contents(st.session_state["active_index"])
-            st.success(f"Index contains {doc_count} documents. Check the terminal for details.")
+            # Simple index check without debug function
+            st.success(f"Index is active and ready for queries.")
         except Exception as e:
             st.error(f"Debug failed: {e}")
 elif debug_index:
@@ -264,7 +256,7 @@ if q and q != st.session_state.get("prev_question", ""):
     st.session_state["prev_question"] = q
     st.session_state["auto_ask"] = True
 
-ask_disabled = not (st.session_state.get("active_index") and q and os.environ.get("ANTHROPIC_API_KEY"))
+ask_disabled = not (st.session_state.get("active_index") and q and st.session_state.get("anthropic_api_key"))
 
 col1, col2 = st.columns([1, 1])
 with col1:
@@ -276,12 +268,12 @@ should_ask = ask_button or (st.session_state.get("auto_ask", False) and q and no
 if should_ask:
     st.session_state["auto_ask"] = False  # Reset auto-ask flag
     with st.spinner("Thinking with Claude…"):
-        try:
-            answer = answer_question(st.session_state["active_index"], q, os.environ.get("ANTHROPIC_API_KEY"), model=model)
-            st.markdown("### Answer")
-            st.write(answer)
-        except Exception as e:
-            st.error(f"Error: {e}")
+                try:
+                    answer = answer_question(st.session_state["active_index"], q, st.session_state.get("anthropic_api_key"), model=model)
+                    st.markdown("### Answer")
+                    st.write(answer)
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
 
 if st.session_state.get("last_json"):
@@ -295,8 +287,8 @@ if st.session_state.get("last_json"):
         st.metric("Site", st.session_state.get("last_site", "Unknown")[:20] + "..." if len(st.session_state.get("last_site", "")) > 20 else st.session_state.get("last_site", "Unknown"))
     with c3:
         st.metric("Status", "✅ Ready" if st.session_state.get("active_index") else "❌ No Index")
-    with c4:
-        st.metric("API Key", "✅ Set" if os.environ.get("ANTHROPIC_API_KEY") else "❌ Missing")
+        with c4:
+            st.metric("API Key", "✅ Set" if st.session_state.get("anthropic_api_key") else "❌ Missing")
     
     st.divider()
     
