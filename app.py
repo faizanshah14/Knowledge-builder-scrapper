@@ -80,10 +80,10 @@ with st.sidebar:
         st.success("✅ API Key Found")
         col1, col2 = st.columns([1, 1])
         with col1:
-            if st.button("Change API Key"):
+            if st.button("Change API Key", key="change_api_key"):
                 st.session_state["show_key_input"] = True
         with col2:
-            if st.button("Remove API Key", type="secondary"):
+            if st.button("Remove API Key", type="secondary", key="remove_api_key"):
                 st.session_state["confirm_remove_key"] = True
     else:
         st.error("❌ API Key Missing")
@@ -94,7 +94,7 @@ with st.sidebar:
         st.warning("⚠️ Are you sure you want to remove the API key?")
         col1, col2, col3 = st.columns([1, 1, 1])
         with col1:
-            if st.button("Yes, Remove", type="primary"):
+            if st.button("Yes, Remove", type="primary", key="confirm_remove_key"):
                 # Remove from .env file
                 env_path = Path(".env")
                 if env_path.exists():
@@ -110,7 +110,7 @@ with st.sidebar:
                 st.session_state["show_key_input"] = False
                 st.rerun()
         with col2:
-            if st.button("Cancel"):
+            if st.button("Cancel", key="cancel_remove_key"):
                 st.session_state["confirm_remove_key"] = False
                 st.rerun()
     
@@ -118,7 +118,7 @@ with st.sidebar:
         new_key = st.text_input("Enter Claude API Key", type="password", value=current_key)
         col1, col2 = st.columns([1, 1])
         with col1:
-            if st.button("Save Key"):
+            if st.button("Save Key", key="save_api_key"):
                 if new_key:
                     # Save to .env file
                     env_path = Path(".env")
@@ -137,7 +137,7 @@ with st.sidebar:
                 else:
                     st.error("Please enter a valid API key")
         with col2:
-            if st.button("Cancel"):
+            if st.button("Cancel", key="cancel_save_key"):
                 st.session_state["show_key_input"] = False
                 st.rerun()
     
@@ -157,7 +157,7 @@ with st.sidebar:
                 if json_files:
                     # Get the most recent file
                     latest_file = max(json_files, key=lambda f: f.stat().st_mtime)
-                    if st.button("Load This Search"):
+                    if st.button("Load This Search", key=f"load_search_{selected_search}"):
                         st.session_state["last_json"] = str(latest_file)
                         st.session_state["last_site"] = selected_search
                         # Load the data to get item count
@@ -201,13 +201,13 @@ with st.form("scrape_form"):
     
     col = st.columns([1,1,1,1])
     with col[0]:
-        go = st.form_submit_button("Scrape & Index", type="primary", use_container_width=True)
+        go = st.form_submit_button("Scrape & Index", type="primary", use_container_width=True, key="scrape_button")
     with col[1]:
-        reset = st.form_submit_button("Reset Cache", use_container_width=True)
+        reset = st.form_submit_button("Reset Cache", use_container_width=True, key="reset_cache_button")
     with col[2]:
-        show_outputs = st.form_submit_button("Open Outputs", use_container_width=True)
+        show_outputs = st.form_submit_button("Open Outputs", use_container_width=True, key="show_outputs_button")
     with col[3]:
-        debug_index = st.form_submit_button("Debug Index", use_container_width=True)
+        debug_index = st.form_submit_button("Debug Index", use_container_width=True, key="debug_index_button")
 
 if reset:
     if cache_dir.exists():
@@ -263,7 +263,7 @@ ask_disabled = not (st.session_state.get("active_index") and q and os.environ.ge
 
 col1, col2 = st.columns([1, 1])
 with col1:
-    ask_button = st.button("Ask", disabled=ask_disabled, type="primary", use_container_width=True)
+    ask_button = st.button("Ask", disabled=ask_disabled, type="primary", use_container_width=True, key="ask_button")
 
 # Handle both button click and auto-submit
 should_ask = ask_button or (st.session_state.get("auto_ask", False) and q and not ask_disabled)
@@ -327,7 +327,7 @@ if st.session_state.get("last_json"):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("🔄 Rebuild Index", use_container_width=True):
+        if st.button("🔄 Rebuild Index", use_container_width=True, key="rebuild_index_button"):
             try:
                 idx = ensure_index_for(json_path, st.session_state.get("last_site", ""))
                 st.session_state["active_index"] = str(idx)
@@ -336,7 +336,7 @@ if st.session_state.get("last_json"):
                 st.error(f"Failed to rebuild index: {e}")
     
     with col2:
-        if st.button("🗑️ Delete This Search", use_container_width=True):
+        if st.button("🗑️ Delete This Search", use_container_width=True, key="delete_search_button"):
             if st.session_state.get("confirm_delete"):
                 # Delete the search directory
                 import shutil
@@ -352,7 +352,7 @@ if st.session_state.get("last_json"):
                 st.warning("Click again to confirm deletion")
     
     with col3:
-        if st.button("📋 Copy Search Info", use_container_width=True):
+        if st.button("📋 Copy Search Info", use_container_width=True, key="copy_info_button"):
             info = f"Site: {st.session_state.get('last_site')}\nItems: {st.session_state.get('last_count')}\nFiles: {len(all_files)}\nPath: {search_dir}"
             st.code(info)
             st.success("Search info copied to clipboard!")
