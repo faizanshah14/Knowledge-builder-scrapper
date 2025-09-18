@@ -100,7 +100,7 @@ with st.sidebar:
         st.warning("⚠️ Are you sure you want to remove the API key?")
         col1, col2, col3 = st.columns([1, 1, 1])
         with col1:
-            if st.button("Yes, Remove", type="primary", key="confirm_remove_key"):
+            if st.button("Yes, Remove", type="primary", key="confirm_remove_yes"):
                 # Remove from .env file
                 env_path = Path(".env")
                 if env_path.exists():
