@@ -95,7 +95,7 @@ with st.sidebar:
         st.warning("⚠️ Are you sure you want to remove the API key?")
         col1, col2, col3 = st.columns([1, 1, 1])
         with col1:
-            if st.button("Yes, Remove", type="primary", key="confirm_remove_yes"):
+            if st.button("Yes", type="primary", key="confirm_remove_yes"):
                 # Remove from session state only
                 if "anthropic_api_key" in st.session_state:
                     del st.session_state["anthropic_api_key"]
