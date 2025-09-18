@@ -75,6 +75,12 @@ with st.sidebar:
     
     # Claude API Key Management
     st.subheader("🔑 Claude API Key")
+    
+    # Check if API key was recently removed
+    if st.session_state.get("api_key_removed", False):
+        st.warning("⚠️ API Key removed. Please restart the app to complete the removal.")
+        st.session_state["api_key_removed"] = False  # Reset the flag
+    
     current_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if current_key:
         st.success("✅ API Key Found")
@@ -102,10 +108,9 @@ with st.sidebar:
                     lines = env_content.split('\n')
                     lines = [line for line in lines if not line.startswith("ANTHROPIC_API_KEY")]
                     env_path.write_text('\n'.join(lines))
-                # Clear from environment
-                if "ANTHROPIC_API_KEY" in os.environ:
-                    del os.environ["ANTHROPIC_API_KEY"]
-                st.success("API Key removed successfully!")
+                # Clear from session state and reload environment
+                st.session_state["api_key_removed"] = True
+                st.success("API Key removed successfully! Please restart the app to complete the removal.")
                 st.session_state["confirm_remove_key"] = False
                 st.session_state["show_key_input"] = False
                 st.rerun()
