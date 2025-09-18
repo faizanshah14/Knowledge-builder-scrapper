@@ -78,32 +78,68 @@ with st.sidebar:
     current_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if current_key:
         st.success("✅ API Key Found")
-        if st.button("Change API Key"):
-            st.session_state["show_key_input"] = True
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("Change API Key"):
+                st.session_state["show_key_input"] = True
+        with col2:
+            if st.button("Remove API Key", type="secondary"):
+                st.session_state["confirm_remove_key"] = True
     else:
         st.error("❌ API Key Missing")
         st.session_state["show_key_input"] = True
     
-    if st.session_state.get("show_key_input", False):
-        new_key = st.text_input("Enter Claude API Key", type="password", value=current_key)
-        if st.button("Save Key"):
-            if new_key:
-                # Save to .env file
+    # Confirmation dialog for removing API key
+    if st.session_state.get("confirm_remove_key", False):
+        st.warning("⚠️ Are you sure you want to remove the API key?")
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
+            if st.button("Yes, Remove", type="primary"):
+                # Remove from .env file
                 env_path = Path(".env")
-                env_content = env_path.read_text() if env_path.exists() else ""
-                if "ANTHROPIC_API_KEY" in env_content:
-                    # Update existing key
+                if env_path.exists():
+                    env_content = env_path.read_text()
                     lines = env_content.split('\n')
                     lines = [line for line in lines if not line.startswith("ANTHROPIC_API_KEY")]
-                    lines.append(f"ANTHROPIC_API_KEY={new_key}")
                     env_path.write_text('\n'.join(lines))
-                else:
-                    # Add new key
-                    env_path.write_text(f"{env_content}\nANTHROPIC_API_KEY={new_key}\n")
-                st.success("API Key saved! Please restart the app.")
+                # Clear from environment
+                if "ANTHROPIC_API_KEY" in os.environ:
+                    del os.environ["ANTHROPIC_API_KEY"]
+                st.success("API Key removed successfully!")
+                st.session_state["confirm_remove_key"] = False
+                st.session_state["show_key_input"] = False
                 st.rerun()
-            else:
-                st.error("Please enter a valid API key")
+        with col2:
+            if st.button("Cancel"):
+                st.session_state["confirm_remove_key"] = False
+                st.rerun()
+    
+    if st.session_state.get("show_key_input", False):
+        new_key = st.text_input("Enter Claude API Key", type="password", value=current_key)
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("Save Key"):
+                if new_key:
+                    # Save to .env file
+                    env_path = Path(".env")
+                    env_content = env_path.read_text() if env_path.exists() else ""
+                    if "ANTHROPIC_API_KEY" in env_content:
+                        # Update existing key
+                        lines = env_content.split('\n')
+                        lines = [line for line in lines if not line.startswith("ANTHROPIC_API_KEY")]
+                        lines.append(f"ANTHROPIC_API_KEY={new_key}")
+                        env_path.write_text('\n'.join(lines))
+                    else:
+                        # Add new key
+                        env_path.write_text(f"{env_content}\nANTHROPIC_API_KEY={new_key}\n")
+                    st.success("API Key saved! Please restart the app.")
+                    st.rerun()
+                else:
+                    st.error("Please enter a valid API key")
+        with col2:
+            if st.button("Cancel"):
+                st.session_state["show_key_input"] = False
+                st.rerun()
     
     st.divider()
     
