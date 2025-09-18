@@ -9,12 +9,12 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 setup(
     name="knowledge-builder",
     version="1.0.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Faizan Shah",
+    author_email="faizanshah1496@gmail.com",
     description="A powerful web scraper and knowledge base system with AI-powered Q&A",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/knowledge-builder",
+    url="https://github.com/faizanshah14/Knowledge-builder-scrapper",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 5 - Production/Stable",
